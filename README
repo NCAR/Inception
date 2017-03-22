@@ -1,0 +1,31 @@
+Inception is a lightweight "container" runtime primarily targeting HPC environments. 
+
+It provides:
+
+	- a daemonless way to launch user processes inside a mount namespace, presenting an arbitrary view of the filesystem (and a C API for doing the same)
+
+It does not provide:
+
+	- containment
+
+
+Why is this useful? 
+
+	In many environments containment is provided by a batch scheduler or some other external service and network isolation doesn't make sense. The only piece of a container runtime that is really missing is the piece that remaps the filesystem (think fancy chroot). This allows users to run a (sanitized) container image without requiring the rest of the usual container infrastructure which may be complex and/or have dubious security properties. 
+
+Dependencies:
+
+	- Jansson JSON parser (http://www.digip.org/jansson/)
+	- A recent Linux kernel and libc supporting mount namespaces (tested on 2.6.32 and newer)
+	- CMake build system (https://cmake.org/)
+
+Security note:
+	It is essential to sanitize your container images before allowing unprivileged users to use them. Inception makes no effort to remap uid 0, so it is essential that you either enforce that your environment contains trusted passwd/sudoers/etc or remove all setuid binaries or use only nosuid filesystems. 
+
+ToDo/Coming soon [contributions welcome]:
+	- Automatic Import from other container systems
+	- Automatic image sanitization tool 
+	- Configuration file improvements 
+
+Who?:
+	Inception was initially developed at the National Center for Atmospheric Research in support of the Yellowstone and Cheyenne supercomputers. https://ncar.ucar.edu/
