@@ -1,0 +1,34 @@
+{
+	"images": [
+		{
+			"name": "debian",
+			"imgroot": "/debian",
+			"mounts": [
+			{
+				"from": "/dev",
+				"to": "/dev"
+			},
+			{
+				"from": "/proc",
+				"to": "/proc"
+			},
+			{
+				"from": "/sys",
+				"to": "/sys"
+			},
+			{
+				"from": "/etc/passwd",
+				"to":"/etc/passwd"
+			},
+			{
+				"from": "/etc/group",
+				"to":"/etc/group"
+			},
+			{
+				"from": "/etc/hosts",
+				"to":"/etc/hosts"
+			}
+			]
+		}
+	]
+}
