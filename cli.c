@@ -56,6 +56,7 @@ void __attribute__((__noreturn__)) exec_shell(image_config_t* image)
 	}
 	environ = image->environ;
 	execv(image->shell_full_path, args);
+	perror("execv failed");
 }
 
 static void usage()
@@ -72,7 +73,7 @@ int main(int argc, char** argv)
 	int i;
 	char** clean_environ = {NULL};
 	char restore_environ=0;
-	char** old_environ = environ;
+	char** old_environ = load_insecure_environ(getpid());
 	environ = clean_environ;
 	//clearenv()?
 	image_config_t image;

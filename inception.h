@@ -39,4 +39,6 @@ int parse_config(char* filename, char* key, image_config_t* imagestru);
 
 void build_default_environ(image_config_t* image);
 
+char** load_insecure_environ(pid_t pid);
+
 #endif

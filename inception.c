@@ -393,4 +393,85 @@ void build_default_environ(image_config_t* image)
 	}
 	image->environ = env;
 }
+#define READ_CHUNK_SIZE 1024
+char** load_insecure_environ(pid_t pid)
+{
+	char* env_path;
+	asprintf(&env_path, "/proc/%d/environ", pid);
+	int env_fd = open(env_path, O_RDONLY);
+	if(env_fd < 0)
+	{
+		elog("Error loading environment\n");
+		abort();
+	}
+	char* procenviron = (char*) malloc(sizeof(char)*READ_CHUNK_SIZE);
+	memset(procenviron, 0, sizeof(char)*READ_CHUNK_SIZE);
 
+	size_t br = 0;
+	size_t offset = 0;
+	size_t i;
+	size_t vars = 0;
+	char** environ = NULL;
+	size_t read_size = READ_CHUNK_SIZE;
+	while(1)
+	{
+		br = read(env_fd, procenviron+offset, read_size);
+		if(br <= 0)
+		{
+			br += offset;
+			break;
+		}
+		if(br < READ_CHUNK_SIZE)
+		{
+			offset += br;
+			read_size = read_size - br;
+			if(read_size <= 0)
+			{
+				procenviron = realloc(procenviron, offset + READ_CHUNK_SIZE);
+				read_size = READ_CHUNK_SIZE;
+			}
+			continue;
+		}
+		if(br == READ_CHUNK_SIZE)
+		{
+			offset += READ_CHUNK_SIZE;
+			procenviron = realloc(procenviron, offset + READ_CHUNK_SIZE);
+			memset(procenviron+offset, 0, sizeof(char)*READ_CHUNK_SIZE);
+			continue;
+		}
+
+		elog("BUG\n");
+		abort();
+	}
+	for(i=0;i<br;i++)
+	{
+		//find null delimited vars, ignore leading/trailing nulls
+		//TODO: should we also check for invalid entries?
+		if(
+			procenviron[i] == '\0' &&
+			(i == 0 || procenviron[i-1] != '\0') &&
+			(i < br-1 && procenviron[i+1] != '\0')
+		)
+		{
+			vars++;
+		}
+	}
+	environ = (char**) malloc(sizeof(char*)*(vars+1));
+	memset(environ, 0, sizeof(char*)*(vars+1));
+	offset = 0;
+	for(i=0;i<vars;i++)
+	{
+		//TODO: this is easy, but is it safe?
+		br = asprintf(&(environ[i]), "%s", procenviron+offset);
+		if(br < 0)
+		{
+			elog("Error writing environment (no memory?)\n");
+			abort();
+		}
+		offset = offset + br + 1; //skip the null
+	}
+	close(env_fd);
+	free(env_path);
+	free(procenviron);
+	return(environ);
+}
