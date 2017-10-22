@@ -91,15 +91,29 @@ void drop_permissions(uid_t real_uid, gid_t real_gid, char* real_name)
 	}
 }
 
+/**
+ * Join Mount path to root path
+ * @return ownership of cstring of joined string or NULL
+ */
+const char const * join_mount_path(const char * const root, const char * const path)
+{
+    char* dest;
+
+    if(asprintf(&dest, "%s/%s", root, path) == -1)
+	return NULL;
+    else
+	return dest;
+}
+
 void do_bind_mounts(image_config_t* image)
 {
 	size_t i;
 	int ret;
-	char* dest;
 	for(i=0;i<image->num_mounts;i++)
 	{
 		//find target path in global namespace
-		asprintf(&dest, "%s/%s", image->imgroot,(image->mount_to)[i]);
+		const char* const dest = join_mount_path(image->imgroot, (image->mount_to)[i]);
+		if(!dest) abort();
 
 		ret = mount((image->mount_from)[i],
 					 dest,
@@ -116,7 +130,7 @@ void do_bind_mounts(image_config_t* image)
 			abort();
 		}
 
-		free(dest);
+		free((char *)dest);
 
 	}
 }
@@ -210,7 +224,7 @@ static char check_dir(const char* path)
  * Check that Mount types is allowed currently
  * @return true if type is not allowed
  */
-static bool check_allowed_mount_types(const char * path, const struct stat * sstat)
+static bool check_allowed_mount_types(const char * const path, const struct stat * const sstat)
 { 
     if(!sstat)
 	return true;
@@ -247,19 +261,19 @@ static bool check_allowed_mount_types(const char * path, const struct stat * sst
  * Check that Mount Paths are valid (and will work with kernel)
  * @return true if paths are invalid
  */
-static bool check_path(const char* src_path, const char* dest_path)
+static bool check_path(const char* const src_path, const char* const dest_path)
 {
 	struct stat src_stat, dest_stat;
 	if(stat(src_path, &src_stat))
 	{
 	    perror("stat");
-	    elog("Unable to find Source Path: %s\n", src_path);
+	    elog("Unable to find source path: %s\n", src_path);
 	    return true;
 	}
  	if(stat(dest_path, &dest_stat))
 	{
 	    perror("stat");
-	    elog("Unable to find Destination Path: %s\n", dest_path);
+	    elog("Unable to find resolved destination path: %s\n", dest_path);
 	    return true;
 	}
 
@@ -267,11 +281,11 @@ static bool check_path(const char* src_path, const char* dest_path)
 	    check_allowed_mount_types(dest_path, &dest_stat)
 	) return true;
 
- 	if(src_stat.st_mode & S_IFMT == dest_stat.st_mode & S_IFMT)
+ 	if(S_ISDIR(src_stat.st_mode) == S_ISDIR(dest_stat.st_mode))
 	    return false;
 	else
 	{
-	    elog("%s -> %s: Mounts must be same type\n", src_path, dest_path);
+	    elog("Resolved mounts must be same type: %s -> %s\n", src_path, dest_path);
 	    return true;
 	}
 	
@@ -343,7 +357,11 @@ int load_image(json_t* config_root, image_config_t* image)
 		{
 			asprintf(&((image->mount_type)[i]), "bind");
 		}
-		if(check_path((image->mount_from)[i], (image->mount_to)[i]))
+
+		const char * const mount_to = join_mount_path(image->imgroot, (image->mount_to)[i]);
+		if(!mount_to) abort();
+
+		if(check_path((image->mount_from)[i], mount_to ))
 		{
 			if(strcasecmp(((image->mount_from)[i]), "none") == 0 && type)
 			{
@@ -357,6 +375,8 @@ int load_image(json_t* config_root, image_config_t* image)
 				abort();
 			}
 		}
+
+		free((char*) mount_to);
 		i++;
 	}
 	return(0);
