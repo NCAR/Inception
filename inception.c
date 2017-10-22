@@ -65,7 +65,7 @@ void drop_permissions(uid_t real_uid, gid_t real_gid, char* real_name)
 	char* errcode = NULL;
 	uid_t euid = geteuid();
 
-	if(euid == 0)
+	if(real_uid == 0)
 	    return;
 	if(real_uid == euid)
 	{
