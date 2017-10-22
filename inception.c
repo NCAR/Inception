@@ -207,16 +207,34 @@ static char check_dir(const char* path)
 	return(1);
 }
 
-static char check_path(const char* path)
+static char check_path(const char* src_path, const char* dest_path)
 {
-	struct stat tmpstat;
+	struct stat src_stat, dest_stat;
 	int ret;
-	ret = stat(path, &tmpstat);
-	if(ret || (!S_ISDIR(tmpstat.st_mode) && !S_ISREG(tmpstat.st_mode)))
-		return(0);
+	ret = stat(src_path, &src_stat);
+	if(ret)
+	{
+	    perror("stat");
+	    elog("Unable to find %s\n", src_path);
+	    return(1);
+	}
+ 	ret = stat(dest_path, &dest_stat);
+	if(ret)
+	{
+	    perror("stat");
+	    elog("Unable to find %s\n", dest_path);
+	    return(1);
+	}
+
+	if( S_ISDIR(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode))
+	    return(0);
+	
+	if( S_ISREG(src_stat.st_mode) && S_ISREG(dest_stat.st_mode))
+	    return(0);
+
+	elog("%s -> %s: Mounts must be same type\n", src_path, dest_path);
 	return(1);
 }
-
 
 int load_image(json_t* config_root, image_config_t* image)
 {
@@ -282,7 +300,7 @@ int load_image(json_t* config_root, image_config_t* image)
 		{
 			asprintf(&((image->mount_type)[i]), "bind");
 		}
-		if(!check_path((image->mount_from)[i]) || !check_path((image->mount_to)[i]))
+		if(!check_path((image->mount_from)[i], (image->mount_to)[i]))
 		{
 			if(strcasecmp(((image->mount_from)[i]), "none") == 0 && type)
 			{
