@@ -29,3 +29,12 @@ ToDo/Coming soon [contributions welcome]:
 
 Who?:
 	Inception was initially developed at the National Center for Atmospheric Research in support of the Yellowstone and Cheyenne supercomputers. https://ncar.ucar.edu/
+	
+Install: (Quick Procedure)
+	git clone https://github.com/NCAR/Inception.git inception
+	cd inception
+	mkdir build
+	export PKG_CONFIG_PATH=$PATH_TO_JANSSON/lib/pkgconfig/:$PKG_CONFIG_PATH
+	cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/inception/$VER/ -DINCEPTION_CONFIG_PATH=/usr/local/inception/$VER/etc/inception.json  ..
+	make && make install
+	chmod 2755 /usr/local/inception/$VER/bin/inception
