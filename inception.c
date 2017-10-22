@@ -50,7 +50,7 @@
 #include <jansson.h>
 #include "inception.h"
 
-static void elog(char* format, ...)
+static void elog(const char const * format, ...)
 {
 	va_list args;
 	va_start(args, format);
@@ -207,6 +207,43 @@ static char check_dir(const char* path)
 }
 
 /**
+ * Check that Mount types is allowed currently
+ * @return true if type is not allowed
+ */
+static bool check_allowed_mount_types(const char * path, const struct stat * sstat)
+{ 
+    if(!sstat)
+	return true;
+
+    switch (sstat->st_mode & S_IFMT) {
+	case S_IFBLK:  
+	    elog("Block device %s is not allowed\n", path);
+	    return true;
+	case S_IFCHR:  
+	    elog("Character device %s is not allowed\n", path);
+	    return true;
+	case S_IFDIR:  
+	    return false;
+	case S_IFIFO:  
+	    elog("FIFO pipe %s is not allowed\n", path);
+	    return true;
+	case S_IFLNK:  
+	    elog("Symlink %s is not allowed\n", path);
+	    return true;
+	case S_IFREG:  
+	    return false;
+	case S_IFSOCK: 
+	    elog("Socket %s is not allowed\n", path);
+	    return true;
+	default:       
+	    elog("Unknown file type %s is not allowed\n", path);
+	    return true;
+    }
+
+    abort();
+}
+
+/**
  * Check that Mount Paths are valid (and will work with kernel)
  * @return true if paths are invalid
  */
@@ -226,20 +263,19 @@ static bool check_path(const char* src_path, const char* dest_path)
 	    return true;
 	}
 
- 	if( 
-		(S_ISDIR(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode)) ||
-		(S_ISREG(src_stat.st_mode) && S_ISREG(dest_stat.st_mode))
-	) return false;
+	if( check_allowed_mount_types(src_path, &src_stat) || 
+	    check_allowed_mount_types(dest_path, &dest_stat)
+	) return true;
 
-	if( 
-		(S_ISDIR(src_stat.st_mode) && !S_ISDIR(dest_stat.st_mode)) ||
-		(S_ISREG(src_stat.st_mode) && !S_ISREG(dest_stat.st_mode))
-	)
+ 	if(src_stat.st_mode & S_IFMT == dest_stat.st_mode & S_IFMT)
+	    return false;
+	else
 	{
 	    elog("%s -> %s: Mounts must be same type\n", src_path, dest_path);
 	    return true;
 	}
 	
+	abort();
 	return true;
 }
 
