@@ -46,12 +46,9 @@
 #include <grp.h>
 #include <pwd.h>
 #include <libgen.h>
-
+#include <stdbool.h>
 #include <jansson.h>
-
 #include "inception.h"
-
-
 
 static void elog(char* format, ...)
 {
@@ -209,33 +206,41 @@ static char check_dir(const char* path)
 	return(1);
 }
 
-static char check_path(const char* src_path, const char* dest_path)
+/**
+ * Check that Mount Paths are valid (and will work with kernel)
+ * @return true if paths are invalid
+ */
+static bool check_path(const char* src_path, const char* dest_path)
 {
 	struct stat src_stat, dest_stat;
-	int ret;
-	ret = stat(src_path, &src_stat);
-	if(ret)
+	if(stat(src_path, &src_stat))
 	{
 	    perror("stat");
-	    elog("Unable to find %s\n", src_path);
-	    return(1);
+	    elog("Unable to find Source Path: %s\n", src_path);
+	    return true;
 	}
- 	ret = stat(dest_path, &dest_stat);
-	if(ret)
+ 	if(stat(dest_path, &dest_stat))
 	{
 	    perror("stat");
-	    elog("Unable to find %s\n", dest_path);
-	    return(1);
+	    elog("Unable to find Destination Path: %s\n", dest_path);
+	    return true;
 	}
 
-	if( S_ISDIR(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode))
-	    return(0);
+ 	if( 
+		(S_ISDIR(src_stat.st_mode) && S_ISDIR(dest_stat.st_mode)) ||
+		(S_ISREG(src_stat.st_mode) && S_ISREG(dest_stat.st_mode))
+	) return false;
+
+	if( 
+		(S_ISDIR(src_stat.st_mode) && !S_ISDIR(dest_stat.st_mode)) ||
+		(S_ISREG(src_stat.st_mode) && !S_ISREG(dest_stat.st_mode))
+	)
+	{
+	    elog("%s -> %s: Mounts must be same type\n", src_path, dest_path);
+	    return true;
+	}
 	
-	if( S_ISREG(src_stat.st_mode) && S_ISREG(dest_stat.st_mode))
-	    return(0);
-
-	elog("%s -> %s: Mounts must be same type\n", src_path, dest_path);
-	return(1);
+	return true;
 }
 
 int load_image(json_t* config_root, image_config_t* image)
@@ -302,7 +307,7 @@ int load_image(json_t* config_root, image_config_t* image)
 		{
 			asprintf(&((image->mount_type)[i]), "bind");
 		}
-		if(!check_path((image->mount_from)[i], (image->mount_to)[i]))
+		if(check_path((image->mount_from)[i], (image->mount_to)[i]))
 		{
 			if(strcasecmp(((image->mount_from)[i]), "none") == 0 && type)
 			{
@@ -310,7 +315,7 @@ int load_image(json_t* config_root, image_config_t* image)
 			}
 			else
 			{
-				elog("Error: check paths: %s, %s\n",
+				elog("Error: check paths: %s -> %s\n",
 					(image->mount_from)[i],
 					(image->mount_to)[i]);
 				abort();
