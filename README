@@ -37,4 +37,4 @@ Install: (Quick Procedure)
 	export PKG_CONFIG_PATH=$PATH_TO_JANSSON/lib/pkgconfig/:$PKG_CONFIG_PATH
 	cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/inception/$VER/ -DINCEPTION_CONFIG_PATH=/usr/local/inception/$VER/etc/inception.json  ..
 	make && make install
-	chmod 2755 /usr/local/inception/$VER/bin/inception
+	chmod 4755 /usr/local/inception/$VER/bin/inception
