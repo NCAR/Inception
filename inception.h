@@ -33,9 +33,9 @@ void find_shell(image_config_t* image);
 
 void setup_namespace(image_config_t* image);
 
-int load_image(json_t* config_root, image_config_t* image);
+int load_image(const json_t* const config_root, image_config_t* const image);
 
-int parse_config(char* filename, char* key, image_config_t* imagestru);
+int parse_config(const char* const filename, const char* const key, image_config_t* const imagestru);
 
 void build_default_environ(image_config_t* image);
 
