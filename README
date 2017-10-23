@@ -38,3 +38,6 @@ Install: (Quick Procedure)
 	cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/inception/$VER/ -DINCEPTION_CONFIG_PATH=/usr/local/inception/$VER/etc/inception.json  ..
 	make && make install
 	chmod 6755 /usr/local/inception/$VER/bin/inception
+	
+Configuration:
+	TODO
