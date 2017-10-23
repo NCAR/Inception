@@ -293,7 +293,7 @@ static bool check_path(const char* const src_path, const char* const dest_path)
 	return true;
 }
 
-int load_image(const json_t* const config_root, image_config_t* const image)
+int load_image(json_t* config_root, image_config_t* image)
 {
 	if(!json_is_object(config_root))
 	{
@@ -382,103 +382,59 @@ int load_image(const json_t* const config_root, image_config_t* const image)
 	return(0);
 }
 
-/**
- * Parse JSON Config Image 
- * @return 0 on success, 1 on not this image, error for others
- */
-int parse_config_image(const char* const key, const json_t* const image, image_config_t* const imagestru)
+int parse_config(char* filename, char* key, image_config_t* imagestru)
 {
-    const json_t* const image_name = json_object_get(image, "name");
-    if(!image_name)
-    {
-	elog("Config Parse Erorr: Image without a name found\n");
-	return -1;
-    }
-
-    const char* const image_name_str = json_string_value(image_name);
-    if(!image_name_str)
-    {
-	elog("Config Parse Error: Image name is invalid\n");
-	return -1;
-    }
-
-    if(strcasecmp(image_name_str, key) == 0)
-	return load_image(image, imagestru);
-    else
-	return 1;
-}
- 
-
-/**
- * Parse JSON Config Image Array
- * @return 0 on success, 1 on not this image, error for others
- */
-int parse_config_image_array(const char* const key, const json_t* const image_list, image_config_t* const imagestru)
-{
-        json_t* image;
-	size_t index;
-	json_array_foreach(image_list, index, image)
+	FILE* config_fd = fopen(filename, "r");
+	json_error_t json_err;
+	json_t* config_root = json_loadf(config_fd, 0, &json_err);
+	int ret;
+	if(!config_root)
 	{
-	    const int ret = parse_config_image(key, image, imagestru);
-	    if(ret != 1) return ret;
+		elog("%s\n", json_err.text);
+		return(-1);
 	}
-
-	return -1;
-}
-
-/**
- * Parse JSON Config content
- * @return 0 on image found
- */      
-int parse_config_json(const char* const key, const json_t* const config_root, image_config_t* const imagestru)
-{
-        json_t* include_image_list = json_object_get(config_root, "include-images");
-	if(json_is_array(include_image_list))
-	{
-	} 
-
 	json_t* image_list = json_object_get(config_root, "images");
 	if(!json_is_array(image_list))
 	{
 		elog("Config Parse Error: Image List not found\n");
-		return -1;
+		return(-1);
 	}
-
-	if(!parse_config_image_array(key, image_list, imagestru))
+	json_t* image;
+	json_t* image_name;
+	const char* image_name_str;
+	size_t index;
+	json_array_foreach(image_list, index, image)
 	{
-	    elog("Error: Image not found\n");
-	    abort();
-	    return -1;
-	} 
-
-	return -1;
-}
- 
-/**
- * Load and Parse JSON Config
- * @return 0 on image found
- */
-int parse_config(const char* const filename, const char* const key, image_config_t* const imagestru)
-{
-	if(!key)
-	    return -1;
-
-	json_error_t json_err;
-	FILE* const config_fd = fopen(filename, "r");
-	const json_t* const config_root = json_loadf(config_fd, 0, &json_err);
-	if(!fclose(config_fd)) abort();
-
-	if(!config_root)
-	{
-		elog("JSON loading failure: %s\n", json_err.text);
-		return -1;
+		image_name = json_object_get(image, "name");
+		if(!image_name)
+		{
+			elog("Config Parse Erorr: Image without a name found\n");
+			return(-1);
+		}
+		image_name_str = json_string_value(image_name);
+		if(!image_name_str)
+		{
+			elog("Config Parse Error: Image name is invalid\n");
+			return(-1);
+		}
+		if(!key)
+		{
+			load_image(image, imagestru);
+			goto cleanup;
+		}
+		if(strcasecmp(image_name_str, key) == 0)
+		{
+			ret = load_image(image, imagestru);
+			goto cleanup; //TODO: would break work here?
+		}
 	}
-
-	bool ret = parse_config_json(key, config_root, imagestru);
-
-	json_decref((json_t*) config_root);
-
-	return ret;
+	elog("Error: Image not found\n");
+	abort();
+	return(-1);
+cleanup:
+	json_decref(config_root);
+	fclose(config_fd);
+	return(ret);
 }
 
 
