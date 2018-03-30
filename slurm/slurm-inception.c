@@ -70,13 +70,18 @@ int slurm_spank_init(spank_t sp, int ac, char** av)
 
 int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 {
-	char* image;
+	char* image = NULL;
 	image_config_t iimage;
 	memset(&iimage, 0, sizeof(image_config_t));
-	spank_option_getopt(sp, &image_opt, &image);
-	slurm_debug("image is: %s\n", image);
-	parse_config(INCEPTION_CONFIG_PATH, image, &iimage);
-	setup_namespace(&iimage);
+	spank_err_t err = spank_option_getopt(sp, &image_opt, &image);
+	if(err != 0)
+		slurm_error("spank error: %s", spank_strerror(err));
+	if(image)
+	{
+		slurm_debug("image is: %s\n", image);
+		parse_config(INCEPTION_CONFIG_PATH, image, &iimage);
+		setup_namespace(&iimage);
+	}
 	return(0);
 }
 int slurm_spank_exit(spank_t sp, int ac, char** av)
