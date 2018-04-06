@@ -39,8 +39,23 @@
 
 SPANK_PLUGIN(inception, 1);
 
+char* image;
+
 int validate_opts(int val, const char* optarg, int remote)
 {
+	//S_CTX_REMOTE is slurmstepd, so we pretend it's ok to leak memory
+	//since this executable context only exists for the life of the job step
+	//we can't validate in the allocator context since it could run on from
+	//a compeltely different platform
+	//see slurm:src/common/plugstack.c
+	if(spank_context() == S_CTX_REMOTE)
+	{
+		if(image)
+		{
+			free(image);
+		}
+		image = strdup(optarg);
+	}
 	return(0);
 }
 
@@ -53,6 +68,7 @@ struct spank_option image_opt =
 int slurm_spank_init(spank_t sp, int ac, char** av)
 {
 	spank_err_t err;
+	image = NULL;
 	err = spank_option_register(sp, &image_opt);
 	if(spank_context() == S_CTX_ALLOCATOR)
 	{
@@ -70,21 +86,24 @@ int slurm_spank_init(spank_t sp, int ac, char** av)
 
 int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 {
-	char* image = NULL;
 	image_config_t iimage;
 	memset(&iimage, 0, sizeof(image_config_t));
-	spank_err_t err = spank_option_getopt(sp, &image_opt, &image);
-	if(err != 0)
-		slurm_error("spank error: %s", spank_strerror(err));
 	if(image)
 	{
-		slurm_debug("image is: %s\n", image);
+		slurm_debug("image is: \"%s\" from config \"%s\"\n", image, INCEPTION_CONFIG_PATH);
 		parse_config(INCEPTION_CONFIG_PATH, image, &iimage);
+		free(image);
+		image = NULL;
+		slurm_debug("done parsing config");
 		setup_namespace(&iimage);
 	}
 	return(0);
 }
 int slurm_spank_exit(spank_t sp, int ac, char** av)
 {
+	if(image)
+	{
+		free(image);
+	}
 	return(0);
 }
