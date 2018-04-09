@@ -50,11 +50,32 @@
 #include <jansson.h>
 #include "inception.h"
 
+static struct jump_table {
+void (*log_fun)(const char const * format, va_list ap);
+} jt;
+
+void __attribute__((constructor)) inception_init()
+{
+	jt.log_fun = NULL;
+}
+
+void set_inception_log(void (*log_fun)(const char const * format, va_list ap))
+{
+	jt.log_fun = log_fun;
+}
+
 static void elog(const char const * format, ...)
 {
 	va_list args;
 	va_start(args, format);
-	vfprintf(stderr, format, args);
+	if(!jt.log_fun)
+	{
+		vfprintf(stderr, format, args);
+	}
+	else
+	{
+		(jt.log_fun)(format, args);
+	}
 	va_end(args);
 }
 
@@ -387,7 +408,7 @@ int parse_config(char* filename, char* key, image_config_t* imagestru)
 	FILE* config_fd = fopen(filename, "r");
 	json_error_t json_err;
 	json_t* config_root = json_loadf(config_fd, 0, &json_err);
-	int ret;
+	int ret = 0;
 	if(!config_root)
 	{
 		elog("%s\n", json_err.text);

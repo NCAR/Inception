@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "inception.h"
 
@@ -46,7 +47,7 @@ int validate_opts(int val, const char* optarg, int remote)
 	//S_CTX_REMOTE is slurmstepd, so we pretend it's ok to leak memory
 	//since this executable context only exists for the life of the job step
 	//we can't validate in the allocator context since it could run on from
-	//a compeltely different platform
+	//a completely different platform
 	//see slurm:src/common/plugstack.c
 	if(spank_context() == S_CTX_REMOTE)
 	{
@@ -83,6 +84,15 @@ int slurm_spank_init(spank_t sp, int ac, char** av)
 //	return(0);
 //}
 
+static inline void silog(const char* format, va_list ap)
+{
+	//log_msg(6, format, ap);
+	//6 -> LOG_LEVEL_DEBUG (this isn't part of the public api)
+	char* tagged_fmt;
+	asprintf(&tagged_fmt, "slurm-inception: %s", format);
+	vsyslog(LOG_WARNING, tagged_fmt, ap);
+	free(tagged_fmt);
+}
 
 int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 {
@@ -90,8 +100,14 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 	memset(&iimage, 0, sizeof(image_config_t));
 	if(image)
 	{
+		set_inception_log(&silog);
 		slurm_debug("image is: \"%s\" from config \"%s\"\n", image, INCEPTION_CONFIG_PATH);
-		parse_config(INCEPTION_CONFIG_PATH, image, &iimage);
+		if(parse_config(INCEPTION_CONFIG_PATH, image, &iimage) < 0)
+		{
+			slurm_error("Error loading inception image. Check the name. Your job may fail");
+			free(image);
+			return(-1);
+		}
 		free(image);
 		image = NULL;
 		slurm_debug("done parsing config");
