@@ -381,8 +381,11 @@ int load_image(json_t* config_root, image_config_t* image)
 
 		const char * const mount_to = join_mount_path(image->imgroot, (image->mount_to)[i]);
 		if(!mount_to) abort();
-
+#ifdef NCAR_UNSAFE
+		if(0) //disable sanity check to allow nested filesystems
+#else
 		if(check_path((image->mount_from)[i], mount_to ))
+#endif
 		{
 			if(strcasecmp(((image->mount_from)[i]), "none") == 0 && type)
 			{
