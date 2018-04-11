@@ -229,7 +229,7 @@ void setup_namespace(image_config_t* image)
   chdir(image->imgroot);
 	chroot(image->imgroot);
 	drop_permissions(realuid, realgid, pw->pw_name);
-  if(!access(image->cwd) && !chdir(image->cwd))
+  if(!access(image->cwd, X_OK | R_OK ) && !chdir(image->cwd))
   {
       elog("Setting Working Directory Failed");
       abort();
