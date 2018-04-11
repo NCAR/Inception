@@ -37,6 +37,7 @@
 #include "inception.h"
 
 #include <slurm/spank.h>
+#define PATH_CWD_MAX 2048
 
 SPANK_PLUGIN(inception, 1);
 
@@ -111,7 +112,11 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 		free(image);
 		image = NULL;
 		slurm_debug("done parsing config");
-		setup_namespace(&iimage);
+
+    //allocated buffer for user requested cwd inside of inception image (or default)
+    char cwd[PATH_CWD_MAX];
+    const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", cwd, PATH_CWD_MAX - 1);
+		setup_namespace(&iimage, cwd_result == ESPANK_SUCCESS ? cwd : NULL );
 	}
 	return(0);
 }
