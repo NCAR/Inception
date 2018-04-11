@@ -61,7 +61,8 @@ void __attribute__((__noreturn__)) exec_shell(image_config_t* image)
 
 static void usage()
 {
-	printf("-c [image_name]\n");
+	printf("-c {image_name}\n");
+	printf("-p {cwd}\n");
 	printf("-x #copy environment\n");
 }
 
