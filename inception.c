@@ -204,7 +204,7 @@ void find_shell(image_config_t* image)
 	}
 }
 
-void setup_namespace(image_config_t* image)
+void setup_namespace(image_config_t* image, const char * cwd = NULL)
 {
 	struct passwd* pw = NULL;
 	int flags = 0;
@@ -226,7 +226,7 @@ void setup_namespace(image_config_t* image)
 	if(ret == -1) perror("unshare: ");
 	systemd_workaround(image);
 	do_bind_mounts(image);
-	chdir(image->imgroot);
+  chdir(cwd ? cwd : image->imgroot);
 	chroot(image->imgroot);
 	drop_permissions(realuid, realgid, pw->pw_name);
 }
