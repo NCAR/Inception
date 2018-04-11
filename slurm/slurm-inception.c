@@ -126,7 +126,7 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
     if(cwd_result != ESPANK_SUCCESS)
     {
 			slurm_error("Unable to extract SLURM_REMOTE_CWD from environment.");
-      return(1);
+      //return(1);
     }
     else iimage.cwd = image_cwd; 
 		setup_namespace(&iimage);
