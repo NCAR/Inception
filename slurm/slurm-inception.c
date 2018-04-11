@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
+#include <sys/param.h>
 
 #include "inception.h"
 
@@ -98,6 +100,7 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 {
 	image_config_t iimage;
 	memset(&iimage, 0, sizeof(image_config_t));
+	iimage.cwd = getcwd(NULL, MAXPATHLEN);
 	if(image)
 	{
 		set_inception_log(&silog);
@@ -112,7 +115,9 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 		image = NULL;
 		slurm_debug("done parsing config");
 		setup_namespace(&iimage);
+		chdir(iimage.cwd);
 	}
+	free(iimage.cwd);
 	return(0);
 }
 int slurm_spank_exit(spank_t sp, int ac, char** av)
