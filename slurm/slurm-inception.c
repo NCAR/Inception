@@ -117,12 +117,17 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 
     //allocate buffer for user requested cwd inside of inception image (or default)
 	  image_cwd = (char*) malloc(sizeof(char*)*PATH_CWD_MAX);
-    if(!image_cwd) {
+    if(!image_cwd) 
+    {
       free(image_cwd);
       return(1);
     }
     const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", image_cwd, PATH_CWD_MAX - 1);
-    if(cwd_result != ESPANK_SUCCESS) return(1);
+    if(cwd_result != ESPANK_SUCCESS)
+    {
+			slurm_error("Unable to extract SLURM_REMOTE_CWD from environment.");
+      return(1);
+    }
     else iimage.cwd = image_cwd; 
 		setup_namespace(&iimage);
 	}
