@@ -229,7 +229,16 @@ void setup_namespace(image_config_t* image)
   chdir(image->imgroot);
 	chroot(image->imgroot);
 	drop_permissions(realuid, realgid, pw->pw_name);
-  if(chdir(image->cwd)) elog("Setting Working Directory Failed");
+  if(!access(image->cwd) && !chdir(image->cwd))
+  {
+      elog("Setting Working Directory Failed");
+      abort();
+  }
+  else //not accessible
+  {
+    elog("User lacks permission to access Working Directory Failed");
+    abort();
+  }
 }
 
 static char check_dir(const char* path)
