@@ -114,9 +114,9 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 		slurm_debug("done parsing config");
 
     //allocate buffer for user requested cwd inside of inception image (or default)
-	  image->cwd = (char*) malloc(sizeof(char*)*PATH_CWD_MAX);
-    if(!image->cwd) return(1);
-    const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", image->cwd, PATH_CWD_MAX - 1);
+	  image.cwd = (char*) malloc(sizeof(char*)*PATH_CWD_MAX);
+    if(!image.cwd) return(1);
+    const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", image.cwd, PATH_CWD_MAX - 1);
     if(cwd_result != ESPANK_SUCCESS) return(1);
 		setup_namespace(&iimage);
 	}
@@ -126,7 +126,7 @@ int slurm_spank_exit(spank_t sp, int ac, char** av)
 {
 	if(image)
 	{
-		if(image->cwd) free(image->cwd);
+		if(image.cwd) free(image.cwd);
 		free(image);
 	}
 	return(0);
