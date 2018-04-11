@@ -228,8 +228,8 @@ void setup_namespace(image_config_t* image)
 	do_bind_mounts(image);
   chdir(image->imgroot);
 	chroot(image->imgroot);
-  if(chdir(image->cwd)) elog("Setting Working Directory Failed");
 	drop_permissions(realuid, realgid, pw->pw_name);
+  if(chdir(image->cwd)) elog("Setting Working Directory Failed");
 }
 
 static char check_dir(const char* path)
