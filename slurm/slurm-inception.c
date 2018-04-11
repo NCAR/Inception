@@ -42,6 +42,7 @@
 SPANK_PLUGIN(inception, 1);
 
 char* image;
+char* image_cwd;
 
 int validate_opts(int val, const char* optarg, int remote)
 {
@@ -52,11 +53,10 @@ int validate_opts(int val, const char* optarg, int remote)
 	//see slurm:src/common/plugstack.c
 	if(spank_context() == S_CTX_REMOTE)
 	{
-		if(image)
-		{
-			free(image);
-		}
+		if(image) free(image);
+		if(image_cwd) free(image_cwd);
 		image = strdup(optarg);
+    image_cwd = NULL;
 	}
 	return(0);
 }
@@ -71,6 +71,7 @@ int slurm_spank_init(spank_t sp, int ac, char** av)
 {
 	spank_err_t err;
 	image = NULL;
+	image_cwd = NULL;
 	err = spank_option_register(sp, &image_opt);
 	if(spank_context() == S_CTX_ALLOCATOR)
 	{
@@ -111,13 +112,18 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 		}
 		free(image);
 		image = NULL;
+		image_cwd = NULL;
 		slurm_debug("done parsing config");
 
     //allocate buffer for user requested cwd inside of inception image (or default)
-	  image.cwd = (char*) malloc(sizeof(char*)*PATH_CWD_MAX);
-    if(!image.cwd) return(1);
-    const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", image.cwd, PATH_CWD_MAX - 1);
+	  image_cwd = (char*) malloc(sizeof(char*)*PATH_CWD_MAX);
+    if(!image_cwd) {
+      free(image_cwd);
+      return(1);
+    }
+    const spank_err_t cwd_result = envspank_getenv(sp, "SLURM_REMOTE_CWD", image_cwd, PATH_CWD_MAX - 1);
     if(cwd_result != ESPANK_SUCCESS) return(1);
+    else iimage.cwd = image_cwd; 
 		setup_namespace(&iimage);
 	}
 	return(0);
@@ -125,9 +131,10 @@ int slurm_spank_task_init_privileged(spank_t sp, int ac, char** av)
 int slurm_spank_exit(spank_t sp, int ac, char** av)
 {
 	if(image)
-	{
-		if(image.cwd) free(image.cwd);
 		free(image);
-	}
+
+  if(image_cwd)
+    free(image_cwd);
+
 	return(0);
 }
