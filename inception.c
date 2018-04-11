@@ -204,7 +204,7 @@ void find_shell(image_config_t* image)
 	}
 }
 
-void setup_namespace(image_config_t* image, const char * cwd = NULL)
+void setup_namespace(image_config_t* image)
 {
 	struct passwd* pw = NULL;
 	int flags = 0;
@@ -226,8 +226,9 @@ void setup_namespace(image_config_t* image, const char * cwd = NULL)
 	if(ret == -1) perror("unshare: ");
 	systemd_workaround(image);
 	do_bind_mounts(image);
-  chdir(cwd ? cwd : image->imgroot);
+  chdir(image->imgroot);
 	chroot(image->imgroot);
+  if(chdir(image->cwd)) elog("Setting Working Directory Failed");
 	drop_permissions(realuid, realgid, pw->pw_name);
 }
 

@@ -50,10 +50,6 @@ void __attribute__((__noreturn__)) exec_shell(image_config_t* image)
 		args[1] = "-c";
 		args[2] = image->usercmd;
 	}
-	if(image->cwd)
-	{
-		if(chdir(image->cwd)) perror("Setting Working Directory Failed: ");
-	}
 	environ = image->environ;
 	execv(image->shell_full_path, args);
 	perror("execv failed");
